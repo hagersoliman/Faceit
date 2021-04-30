@@ -67,6 +67,7 @@ class Hourglass(nn.Module):
         self.UB3 = UpBlock2d(512 ,128, kernel_size=3, padding=1)
         self.UB4 = UpBlock2d(265 ,64, kernel_size=3, padding=1)
         self.UB5 = UpBlock2d(128 ,32, kernel_size=3, padding=1)
+        self.out_filters = block_expansion + in_features
      
 
     def forward(self, x):
