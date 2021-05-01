@@ -89,9 +89,9 @@ class KPDetector(nn.Module):
         heatmap = F.softmax(heatmap / self.temperature, dim=2) #Softmax(xi​)=exp(xi​)​ / ∑j​ exp(xj​)
         #It is applied to all slices along dim, and will re-scale them so that the elements lie in the range [0, 1] and sum to 1.
         print("heatmap", heatmap.shape)
-        heatmap = heatmap.view(*final_shape) #torch.Size([1, 10, 58, 58])
+        heatmap0 = heatmap.view(*final_shape) #torch.Size([1, 10, 58, 58])
         h, w, = final_shape[2],final_shape[3] #torch.Size([1, 10, 58, 58])
-        heatmap = heatmap.unsqueeze(-1) # torch.Size([1, 10, 58, 58, 1])
+        heatmap = heatmap0.unsqueeze(-1) # torch.Size([1, 10, 58, 58, 1])
         print("heatmap", heatmap.shape)
         
         x = torch.arange(w).type(heatmap.type()) #torch.Size([58])
@@ -221,9 +221,27 @@ class KPDetector(nn.Module):
         print(heatmap.shape, unsqueezed_meshed.shape)
         value = (heatmap * unsqueezed_meshed).sum(dim=(2, 3)) # torch.Size([1, 10, 58, 58, 1]) * torch.Size([1, 1, 58, 58, 2]) = torch.Size([1, 10, 58, 58, 2])..sum(dim=(2, 3)) = torch.Size([1, 10, 2])
         out = {'value': value} 
+        
+        print(feature_map.shape) #torch.Size([1, 35, 64, 64])
+        jac_feature_map = self.jacobian(feature_map) #torch.Size([1, 40, 58, 58])
+        print("1",jac_feature_map.shape)
+        jac_feature_map = jac_feature_map.view(final_shape[0], self.num_jacobian_maps, 4, final_shape[2], final_shape[3])# torch.Size([1, 10, 4, 58, 58])
+        print("2",jac_feature_map.shape)
+        heatmap = heatmap0.unsqueeze(2) #torch.Size([1, 10, 1, 58, 58])
+        print("3",heatmap.shape)
+
+        jacobian = heatmap * jac_feature_map #torch.Size([1, 10, 4, 58, 58])
+        print("4",jacobian.shape)
+        jacobian = jacobian.view(final_shape[0], final_shape[1], 4, -1)#torch.Size([1, 10, 4, 3364])
+        print("5",jacobian.shape)
+        jacobian = jacobian.sum(dim=-1) #torch.Size([1, 10, 4])
+        print("6",jacobian.shape)
+        jacobian = jacobian.view(jacobian.shape[0], jacobian.shape[1], 2, 2)#torch.Size([1, 10, 2, 2])
+        print("7",jacobian.shape)
+        out['jacobian'] = jacobian
         return out
 
-    class UpBlock2d(nn.Module):
+class UpBlock2d(nn.Module):
   
 
     def __init__(self, in_features, out_features, kernel_size=3, padding=1, groups=1):
