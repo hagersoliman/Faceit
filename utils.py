@@ -11,6 +11,19 @@ import torch
 
 # In[4]:
 
+def make_coordinate_grid(size, type):
+    x = torch.arange(size[1]).type(type)
+    y = torch.arange(size[0]).type(type)
+
+    x = ((x*2) / (size[1] - 1)) - 1
+    y = ((y*2) / (size[0] - 1)) - 1
+
+    x_repeated = x.view(1, -1).repeat(size[0], 1)
+    y_repeated = y.view(-1, 1).repeat(1, size[1])
+    
+    return torch.cat([x_repeated.unsqueeze_(2), y_repeated.unsqueeze_(2)], 2)
+
+
 
 class DownBlock2d(nn.Module):
    
