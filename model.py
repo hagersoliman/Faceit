@@ -68,16 +68,18 @@ class ImagePyramide(nn.Module):
     """
     def __init__(self, scales, num_channels):
         super(ImagePyramide, self).__init__()
-        downs = {}
-        for scale in scales:
-            downs[str(scale).replace('.', '-')] = AntiAliasInterpolation2d(num_channels, scale) # AntiAliasInterpolation2d youtube
-        self.downs = nn.ModuleDict(downs)
+        scale_down = {}
+        for lvl in scales:
+            scale_down[str(lvl).translate({ord('.'): None})] = AntiAliasInterpolation2d(num_channels, lvl)
+        self.scale_down = nn.ModuleDict(scale_down)
 
     def forward(self, x):
-        out_dict = {}
-        for scale, down_module in self.downs.items():
-            out_dict['prediction_' + str(scale).replace('-', '.')] = down_module(x)
-        return out_dict
+        predicted = {}
+        for lvl, down_module in self.scale_down.items():
+            predicted['prediction_' + str(lvl).translate({ord('.'): None})] = down_module(x)
+        # print("predicted :............")
+        # print(predicted)
+        return predicted
 
 
 class Transform:
