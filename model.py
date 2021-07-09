@@ -5,35 +5,60 @@ from modules.util import AntiAliasInterpolation2d, make_coordinate_grid
 from torchvision.models import vgg19
 import numpy as np
 from torch.autograd import grad
-
+from torchvision.models import vgg19
 
 class Vgg19(nn.Module):
     """
     Vgg19 network for perceptual loss. See Sec 3.3.
     """
-    def __init__(self): # mokmin ngrab eno yb2a 3ndo options 3'er vgg19
-        # super(Vgg19, self).__init__()
-        features = vgg19(pretrained=True).features # models. => import vgg19 
+    def __init__(self, requires_grad=False):
+        super(Vgg19, self).__init__()
+        features = vgg19(pretrained=True).features
+
         layers = [(0, 2), (2, 7), (7, 12), (12, 21), (21, 30)]
+
+        # self.slices =  [nn.Sequential(),
+        #                 nn.Sequential(),
+        #                 nn.Sequential(),
+        #                 nn.Sequential(),
+        #                 nn.Sequential()]
+
         self.slices = []
-        for i in range(len(layers)):
-        	self.slices.append(nn.Sequential(*features[layers[i][0]: layers[i][1]]))
-
-        # TODO Normilize in one function tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-        self.mean = nn.Parameter(data=Tensor(np.array([0.485, 0.456, 0.406]).reshape((1, 3, 1, 1))), requires_grad=False) # TOOD search these numbers
-        self.std = nn.Parameter(data=Tensor(np.array([0.229, 0.224, 0.225]).reshape((1, 3, 1, 1))), requires_grad=False) # TOOD search these numbers 
+        self.slice1 = nn.Sequential()
+        self.slices.append(self.slice1)
+        self.slice2 = nn.Sequential()
+        self.slices.append(self.slice2)
+        self.slice3 = nn.Sequential()
+        self.slices.append(self.slice3)
+        self.slice4 = nn.Sequential()
+        self.slices.append(self.slice4)
+        self.slice5 = nn.Sequential()
+        self.slices.append(self.slice5)
         
-        # change
-        for param in self.parameters():
-            param.requires_grad = False
+        for i in range(len(layers)):
+          for j in range(*layers[i]):
+            self.slices[i].add_module(str(j), features[j])
 
-    def forward(self, input):
+        # for i in range(len(layers)):
+        # 	self.slices.append(nn.Sequential(*features[layers[i][0]: layers[i][1]]))
+        
+        self.mean = nn.Parameter(data=torch.Tensor(np.array([0.485, 0.456, 0.406]).reshape((1, 3, 1, 1))), requires_grad=False)
+        self.std = nn.Parameter(data=torch.Tensor(np.array([0.229, 0.224, 0.225]).reshape((1, 3, 1, 1))), requires_grad=False)
+
+        if not requires_grad:
+            for param in self.parameters():
+                param.requires_grad = False
+
+    def forward(self, X):
         out = []
-        input = (input - self.mean) / self.std
-        next_input = input
-        for i in len(self.slices):
+        X = (X - self.mean) / self.std
+        next_input = X
+        for i in range(len(self.slices)):
             next_input = self.slices[i](next_input)
             out.append(next_input)
+
+        # print("out is ..........")
+        # print(out)
         return out
 
 
