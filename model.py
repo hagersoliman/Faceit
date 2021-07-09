@@ -68,18 +68,16 @@ class ImagePyramide(torch.nn.Module):
     """
     def __init__(self, scales, num_channels):
         super(ImagePyramide, self).__init__()
-        scale_down = {}
-        for lvl in scales:
-            scale_down[str(lvl).translate({ord('.'): None})] = AntiAliasInterpolation2d(num_channels, lvl)
-        self.scale_down = nn.ModuleDict(scale_down)
+        downs = {}
+        for scale in scales:
+            downs[str(scale).replace('.', '-')] = AntiAliasInterpolation2d(num_channels, scale)
+        self.downs = nn.ModuleDict(downs)
 
     def forward(self, x):
-        predicted = {}
-        for lvl, down_module in self.scale_down.items():
-            predicted['prediction_' + str(lvl).translate({ord('.'): None})] = down_module(x)
-        print("out dict :............")
-        print(predicted)
-        return predicted
+        out_dict = {}
+        for scale, down_module in self.downs.items():
+            out_dict['prediction_' + str(scale).replace('-', '.')] = down_module(x)
+        return out_dict
 
 
 class Transform:
@@ -93,41 +91,50 @@ class Transform:
 
         if ('sigma_tps' in kwargs) and ('points_tps' in kwargs):
             self.tps = True
-            self.control_points = make_coordinate_grid((kwargs['points_tps'], kwargs['points_tps']), type=noise.type())
-            self.control_points = self.control_points.unsqueeze(0)
-            self.control_params = torch.normal(mean=0,
-                                               std=kwargs['sigma_tps'] * torch.ones([bs, 1, kwargs['points_tps'] ** 2]))
+            self.control_points = make_coordinate_grid((kwargs['points_tps'], kwargs['points_tps']), type=noise.type()).unsqueeze(0)
+            self.control_params = torch.normal(mean=0, std=kwargs['sigma_tps'] * torch.ones([bs, 1, kwargs['points_tps'] ** 2]))
+            # print("control things:................")
+            # print(self.control_points.size())
+            # print(self.control_params.size())
         else:
             self.tps = False
 
     def transform_frame(self, frame):
+        print("frame:............")
+        print(frame.size())
         grid = make_coordinate_grid(frame.shape[2:], type=frame.type()).unsqueeze(0)
         grid = grid.view(1, frame.shape[2] * frame.shape[3], 2)
-        grid = self.warp_coordinates(grid).view(self.bs, frame.shape[2], frame.shape[3], 2)
+        #warp
+        theta = (self.theta.type(grid.type())).unsqueeze(1)
+        transformed = (torch.matmul(theta[:, :, :, :2], grid.unsqueeze(-1)) + theta[:, :, :, 2:]).squeeze(-1)
+        if self.tps:
+            control_points = self.control_points.type(grid.type())
+            control_params = self.control_params.type(grid.type())
+            distances = torch.abs(grid.view(grid.shape[0], -1, 1, 2) - control_points.view(1, 1, -1, 2)).sum(-1)
+
+            result = (distances ** 2) * torch.log(distances + 1e-6) * control_params
+            transformed += result.sum(dim=2).view(self.bs, grid.shape[1], 1)
+        grid = transformed.view(self.bs, frame.shape[2], frame.shape[3], 2)
+        print("grid:............")
+        print(grid.size())
+        print(F.grid_sample(frame, grid, padding_mode="reflection").size())
         return F.grid_sample(frame, grid, padding_mode="reflection")
 
-    def warp_coordinates(self, coordinates):
-        theta = self.theta.type(coordinates.type())
-        theta = theta.unsqueeze(1)
-        transformed = torch.matmul(theta[:, :, :, :2], coordinates.unsqueeze(-1)) + theta[:, :, :, 2:]
-        transformed = transformed.squeeze(-1)
-
+    def jacobian(self, coordinates):
+        theta = (self.theta.type(coordinates.type())).unsqueeze(1)
+        transformed = (torch.matmul(theta[:, :, :, :2], coordinates.unsqueeze(-1)) + theta[:, :, :, 2:]).squeeze(-1)
+        # print("transformed:.............")
+        # print(transformed.size())
         if self.tps:
             control_points = self.control_points.type(coordinates.type())
             control_params = self.control_params.type(coordinates.type())
-            distances = coordinates.view(coordinates.shape[0], -1, 1, 2) - control_points.view(1, 1, -1, 2)
-            distances = torch.abs(distances).sum(-1)
+            distances = torch.abs(coordinates.view(coordinates.shape[0], -1, 1, 2) - control_points.view(1, 1, -1, 2)).sum(-1)
 
-            result = distances ** 2
-            result = result * torch.log(distances + 1e-6)
-            result = result * control_params
-            result = result.sum(dim=2).view(self.bs, coordinates.shape[1], 1)
-            transformed = transformed + result
+            result = (distances ** 2) * torch.log(distances + 1e-6) * control_params
+            transformed += result.sum(dim=2).view(self.bs, coordinates.shape[1], 1)
 
-        return transformed
+        new_coordinates = transformed
 
-    def jacobian(self, coordinates):
-        new_coordinates = self.warp_coordinates(coordinates)
         grad_x = grad(new_coordinates[..., 0].sum(), coordinates, create_graph=True)
         grad_y = grad(new_coordinates[..., 1].sum(), coordinates, create_graph=True)
         jacobian = torch.cat([grad_x[0].unsqueeze(-2), grad_y[0].unsqueeze(-2)], dim=-2)
@@ -216,7 +223,18 @@ class GeneratorFullModel(torch.nn.Module):
 
             ## Value loss part
             if self.loss_weights['equivariance_value'] != 0:
-                value = torch.abs(kp_driving['value'] - transform.warp_coordinates(transformed_kp['value'])).mean()
+                #wrap
+                theta = (transform.theta.type(transformed_kp['value'].type())).unsqueeze(1)
+                transformed = (torch.matmul(theta[:, :, :, :2], transformed_kp['value'].unsqueeze(-1)) + theta[:, :, :, 2:]).squeeze(-1)
+                if transform.tps:
+                    control_points = transform.control_points.type(transformed_kp['value'].type())
+                    control_params = transform.control_params.type(transformed_kp['value'].type())
+                    distances = torch.abs(transformed_kp['value'].view(transformed_kp['value'].shape[0], -1, 1, 2) - control_points.view(1, 1, -1, 2)).sum(-1)
+
+                    result = (distances ** 2) * torch.log(distances + 1e-6) * control_params
+                    transformed += result.sum(dim=2).view(transform.bs, transformed_kp['value'].shape[1], 1)
+
+                value = torch.abs(kp_driving['value'] - transformed).mean()
                 loss_values['equivariance_value'] = self.loss_weights['equivariance_value'] * value
 
             ## jacobian loss part
