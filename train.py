@@ -3,10 +3,10 @@ import torch
 from torch.utils.data import DataLoader
 from logger import Logger
 
-from modules.model import GeneratorFullModel, DiscriminatorFullModel
-from modules.generator import OcclusionAwareGenerator
-from modules.discriminator import MultiScaleDiscriminator
-from modules.keypoint_detector import KPDetector
+from main_modules.model import GeneratorFullModel, DiscriminatorFullModel
+from main_modules.generator import OcclusionAwareGenerator
+from main_modules.discriminator import MultiScaleDiscriminator
+from main_modules.keypoint_detector import KPDetector
 
 from torch.optim.lr_scheduler import MultiStepLR
 
