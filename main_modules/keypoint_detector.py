@@ -23,7 +23,7 @@ class KPDetector(nn.Module):
         self.num_jacobian_maps = 1 if single_jacobian_map else num_kp
         self.jacobian = nn.Conv2d(in_channels=self.predictor.out_filters,
                                     out_channels=4 * self.num_jacobian_maps, kernel_size=(7, 7), padding=pad)
-        ## Initialize the weights/bias with identity transformation
+        # Initialize the weights/bias with identity transformation
         self.jacobian.weight.data.zero_()
         self.jacobian.bias.data.copy_(torch.tensor([1, 0, 0, 1] * self.num_jacobian_maps, dtype=torch.float))
         self.temperature = temperature
