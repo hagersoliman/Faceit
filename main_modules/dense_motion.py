@@ -1,7 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 import torch
-from modules.util import Hourglass, AntiAliasInterpolation2d, localized_heatmap, create_mesh
+from main_modules.util import Hourglass, AntiAliasInterpolation2d, localized_heatmap, create_mesh
 
 
 class DenseMotionNetwork(nn.Module):

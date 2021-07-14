@@ -1,7 +1,7 @@
 from torch import nn
 import torch
 import torch.nn.functional as F
-from modules.util import Hourglass, create_mesh, AntiAliasInterpolation2d
+from main_modules.util import Hourglass, create_mesh, AntiAliasInterpolation2d
 
 
 class KPDetector(nn.Module):

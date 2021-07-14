@@ -3,16 +3,16 @@ import torch
 from torch.utils.data import DataLoader
 from logger import Logger
 
-from modules.model import GeneratorFullModel, DiscriminatorFullModel
-from modules.generator import OcclusionAwareGenerator
-from modules.discriminator import MultiScaleDiscriminator
-from modules.keypoint_detector import KPDetector
+from main_modules.model import GeneratorFullModel, DiscriminatorFullModel
+from main_modules.GANs_generator import OcclusionAwareGenerator
+from main_modules.GANs_discriminator import MultiScaleDiscriminator
+from main_modules.keypoint_detector import KPDetector
 
 from torch.optim.lr_scheduler import MultiStepLR
 
 from sync_batchnorm import DataParallelWithCallback
 
-from frames_dataset import DatasetRepeater,FramesDataset
+from read_and_augment_dataset import RepeatDataset,DatasetFramesAndAugmentation
 
 import matplotlib
 
@@ -56,7 +56,7 @@ def train(config, generator, discriminator, kp_detector, checkpoint, log_dir, da
 
     
     if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
-        dataset = DatasetRepeater(dataset, train_params['num_repeats'])
+        dataset = RepeatDataset(dataset, train_params['num_repeats'])
         
     dataloader = DataLoader(dataset, batch_size=train_params['batch_size'], shuffle=True, num_workers=6, drop_last=True)
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     keypoint_detector = KPDetector(**configuration['model_params']['kp_detector_params'],**configuration['model_params']['common_params'])
     keypoint_detector.to(arguments.device_ids[0]) if torch.cuda.is_available() else None
 
-    dataset = FramesDataset(is_train=True, **configuration['dataset_params'])
+    dataset = DatasetFramesAndAugmentation(is_train=True, **configuration['dataset_params'])
     
     os.makedirs(directory_of_logs) if not os.path.exists(directory_of_logs) else None
 

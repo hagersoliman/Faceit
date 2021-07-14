@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from modules.dense_motion import DenseMotionNetwork
+from main_modules.dense_motion import DenseMotionNetwork
 from sync_batchnorm import SynchronizedBatchNorm2d as BatchNorm2d
 
 
