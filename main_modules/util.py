@@ -4,8 +4,151 @@ import torch.nn.functional as F
 import torch
 
 from sync_batchnorm import SynchronizedBatchNorm2d as BatchNorm2d
+def localized_heatmap(kp, kp_variance, w, h): #kp2gaussian
+    """
+    Transform a keypoint into gaussian like representation
+    """
+    print("kp2gaussian")
+    kp_value = kp['value']
+    mesh = create_mesh(w, h, kp_value.type()) #torch.Size([64, 64, 2])
+    mesh = mesh.view((1,1)+mesh.shape) 
+    #print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
+    print(kp_value.shape[1])
+    Trd = mesh.repeat((1,kp_value.shape[1], 1,1,1))
+    #print("6",Trd.shape) #torch.Size([1, 10, 64, 64, 2])
+    z = kp_value.unsqueeze(2).unsqueeze(2)
+    #print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
+    out = torch.exp(-0.5 * ((Trd - z) ** 2).sum(-1) / kp_variance)
+    #print("10",out.shape) #torch.Size([1, 10, 64, 64])
+    return out
+def create_mesh(w, h, type):
+    """
+    Create a meshgrid [-1,1] x [-1,1] of given spatial_size.
+    """
+    x = torch.arange(w).type(type) #torch.Size([58])
+    y = torch.arange(h).type(type) #torch.Size([58])
+
+    x = normalize(y,h) #(2 * (x / (w - 1)) - 1) #map the tensor of numbers with range 0 -> 57 to numbers the range -1 -> 1
+    y = normalize(y,h) # (2 * (y / (h - 1)) - 1) #map the tensor of numbers with range 0 -> 57 to numbers the range -1 -> 1
+
+    yy = y.view(-1, 1).repeat(1, w) # torch.Size([58, 1]).repeat(1, w) = torch.Size([58, 58])
+    """
+    tensor([[-1.0000, -1.0000, -1.0000,  ..., -1.0000, -1.0000, -1.0000],
+        [-0.9649, -0.9649, -0.9649,  ..., -0.9649, -0.9649, -0.9649],
+        [-0.9298, -0.9298, -0.9298,  ..., -0.9298, -0.9298, -0.9298],
+        ...,
+        [ 0.9298,  0.9298,  0.9298,  ...,  0.9298,  0.9298,  0.9298],
+        [ 0.9649,  0.9649,  0.9649,  ...,  0.9649,  0.9649,  0.9649],
+        [ 1.0000,  1.0000,  1.0000,  ...,  1.0000,  1.0000,  1.0000]])
+    """
+    xx = x.view(1, -1).repeat(h, 1) # torch.Size([1, 58]).repeat(h, 1) = torch.Size([58, 58])
+    """
+    tensor([[-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000],
+        [-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000],
+        [-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000],
+        ...,
+        [-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000],
+        [-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000],
+        [-1.0000, -0.9649, -0.9298,  ...,  0.9298,  0.9649,  1.0000]])
+    """
+
+    meshed = torch.cat([xx.unsqueeze_(2), yy.unsqueeze_(2)], 2) #torch.Size([58, 58, 2])
+    """
+    
+    [xx.unsqueeze_(2), yy.unsqueeze_(2)] = # [torch.Size([58, 58, 1]), torch.Size([58, 58, 1]) ]
+    [tensor([[[-1.0000],
+         [-0.9649],
+         [-0.9298],
+         ...,
+         [ 0.9298],
+         [ 0.9649],
+         [ 1.0000]],
+
+        [[-1.0000],
+         [-0.9649],
+         [-0.9298],
+         ...,
+         [ 0.9298],
+         [ 0.9649],
+         [ 1.0000]],
+
+        ...,
+
+        [[-1.0000],
+         [-0.9649],
+         [-0.9298],
+         ...,
+         [ 0.9298],
+         [ 0.9649],
+         [ 1.0000]],
+
+        [[-1.0000],
+         [-0.9649],
+         [-0.9298],
+         ...,
+         [ 0.9298],
+         [ 0.9649],
+         [ 1.0000]]]), 
+         tensor([[[-1.0000],
+         [-1.0000],
+         [-1.0000],
+         ...,
+         [-1.0000],
+         [-1.0000],
+         [-1.0000]],
+
+        [[-0.9649],
+         [-0.9649],
+         [-0.9649],
+         ...,
+         [-0.9649],
+         [-0.9649],
+         [-0.9649]],
+
+        ...,
 
 
+        [[ 0.9649],
+         [ 0.9649],
+         [ 0.9649],
+         ...,
+         [ 0.9649],
+         [ 0.9649],
+         [ 0.9649]],
+
+        [[ 1.0000],
+         [ 1.0000],
+         [ 1.0000],
+         ...,
+         [ 1.0000],
+         [ 1.0000],
+         [ 1.0000]]])]
+
+    torch.cat([xx.unsqueeze_(2), yy.unsqueeze_(2)], 2) = 
+    
+    tensor([[[-1.0000, -1.0000],
+         [-0.9649, -1.0000],
+         [-0.9298, -1.0000],
+         ...,
+         [ 0.9298, -1.0000],
+         [ 0.9649, -1.0000],
+         [ 1.0000, -1.0000]],
+
+        ...,
+  
+        [[-1.0000,  1.0000],
+         [-0.9649,  1.0000],
+         [-0.9298,  1.0000],
+         ...,
+         [ 0.9298,  1.0000],
+         [ 0.9649,  1.0000],
+         [ 1.0000,  1.0000]]])
+    """
+
+    return meshed
+def normalize(x,w):
+  x = x/(w-1)
+  return (2*x) -1
 def kp2gaussiano(kp, spatial_size, kp_variance):
     """
     Transform a keypoint into gaussian like representation
@@ -288,6 +431,8 @@ class Encoder(nn.Module):
         outs = [x]
         for down_block in self.down_blocks:
             outs.append(down_block(outs[-1]))
+        for i, b  in enumerate( outs):
+            print(i," : ", b.shape)
         return outs
 
 
@@ -370,7 +515,7 @@ class AntiAliasInterpolation2d(nn.Module):
         self.scale = scale
         inv_scale = 1 / scale
         self.int_inv_scale = int(inv_scale)
-
+    
     def forward(self, input):
         if self.scale == 1.0:
             return input
