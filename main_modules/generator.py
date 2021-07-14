@@ -1,9 +1,74 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from modules.util import ResBlock2d, SameBlock2d, UpBlock2d, DownBlock2d
 from modules.dense_motion import DenseMotionNetwork
+from sync_batchnorm import SynchronizedBatchNorm2d as BatchNorm2d
 
+
+class DownBlock2d(nn.Module):
+
+    def __init__(self, in_features, out_features, kernel_size=3, padding=1, groups=1):
+        super(DownBlock2d, self).__init__()
+        self.conv = nn.Conv2d(in_channels=in_features, out_channels=out_features, kernel_size=kernel_size,
+                              padding=padding, groups=groups)
+        self.norm = BatchNorm2d(out_features, affine=True)
+        self.pool = nn.AvgPool2d(kernel_size=(2, 2))
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = F.relu(self.norm(out))
+        out = self.pool(out)
+        return out
+
+
+class UpBlock2d(nn.Module):
+
+    def __init__(self, in_features, out_features, kernel_size=3, padding=1, groups=1):
+        super(UpBlock2d, self).__init__()
+
+        self.conv = nn.Conv2d(in_channels=in_features, out_channels=out_features, kernel_size=kernel_size,
+                              padding=padding, groups=groups)
+        self.norm = BatchNorm2d(out_features, affine=True)
+
+    def forward(self, x):
+        out = F.interpolate(x, scale_factor=2)
+        out = self.conv(out)
+        out = F.relu(self.norm(out))
+        return out
+
+class SameBlock2d(nn.Module):
+
+    def __init__(self, in_features, out_features, groups=1, kernel_size=3, padding=1):
+        super(SameBlock2d, self).__init__()
+        self.conv = nn.Conv2d(in_channels=in_features, out_channels=out_features,
+                              kernel_size=kernel_size, padding=padding, groups=groups)
+        self.norm = BatchNorm2d(out_features, affine=True)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = F.relu(self.norm(out))
+        return out
+
+
+class ResBlock2d(nn.Module):
+    
+
+    def __init__(self, in_features, kernel_size, padding):
+        super(ResBlock2d, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=in_features, out_channels=in_features, kernel_size=kernel_size,
+                               padding=padding)
+        self.conv2 = nn.Conv2d(in_channels=in_features, out_channels=in_features, kernel_size=kernel_size,
+                               padding=padding)
+        self.norm1 = BatchNorm2d(in_features, affine=True)
+        self.norm2 = BatchNorm2d(in_features, affine=True)
+
+    def forward(self, x):
+        out = F.relu(self.norm1(x))
+        out = self.conv1(out)
+        out = F.relu(self.norm2(out))
+        out = self.conv2(out)
+        out =out + x
+        return out
 
 class OcclusionAwareGenerator(nn.Module):
     
@@ -75,12 +140,10 @@ class OcclusionAwareGenerator(nn.Module):
 
             if map_of_occlusion is not None:
                 dictionary_output['occlusion_map'] = map_of_occlusion
-                ########################################################################################
+                
                 if output.shape[2] != map_of_occlusion.shape[2] or output.shape[3] != map_of_occlusion.shape[3]:
-                    print("interpolateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-                    print("#######################################################")
                     map_of_occlusion = F.interpolate(map_of_occlusion, size=output.shape[2:], mode='bilinear')
-                ##########################################################################################
+                
                 output = output * map_of_occlusion
                 
             
@@ -100,7 +163,10 @@ class OcclusionAwareGenerator(nn.Module):
 
     def apply_deformation(self, inpt, deformation):
         if deformation.shape[1] != inpt.shape[2] or deformation.shape[2] != inpt.shape[3]:#deform height and weidth and input height and weidth
+    
             permuted_deformation = deformation.permute(0, 3, 1, 2)
             interpolated_deformation = F.interpolate(permuted_deformation, size=(inpt.shape[2], inpt.shape[3]), mode='bilinear')
             reversed_interpolated_deformation = interpolated_deformation.permute(0, 2, 3, 1)
+
         return F.grid_sample(inpt, reversed_interpolated_deformation if deformation.shape[1] != inpt.shape[2] or deformation.shape[2] != inpt.shape[3] else deformation)
+

@@ -1,9 +1,46 @@
 from torch import nn
 import torch.nn.functional as F
-from modules.util import kp2gaussian
+
 import torch
 
+def gaussian_heatmaps_from_keypoints(kp, size, kp_variance):
+    mean = kp['value']
+    shape_of_keypoints=len(mean.shape)
+    leading_dim_num =  shape_of_keypoints - 1
 
+    grid = generate_grid(size, mean.type())
+    
+    grid = grid.view((1,) * leading_dim_num + grid.shape)#1 1 256 256 2
+    
+    #5 10 1 1 1
+    grid = grid.repeat(mean.shape[:leading_dim_num] + (1, 1, 1))#5 10 256 256 2
+      
+    mean = mean.view( mean.shape[:leading_dim_num] + (1, 1, 2))#5 10 1 1 2
+
+    output = torch.exp(-0.5 * ( (grid - mean) ** 2).sum(-1) / kp_variance)
+    #5 10 256 256 
+    return output
+
+#grid from -1:1 in x and y 
+def generate_grid(size, type):
+   
+    h = size[0]
+    w = size[1]
+    x = torch.arange(w).type(type)
+    y = torch.arange(h).type(type)
+    
+    x = x / (w - 1)
+    x = x*2 -1
+    y = y / (h - 1)
+    y = y*2 -1
+    x_channel = x.view(1, -1).repeat(h, 1).unsqueeze_(2)
+    y_channel = y.view(-1, 1).repeat(1, w).unsqueeze_(2)
+
+    grid = torch.cat([x_channel, y_channel], 2)
+    
+    return grid
+
+    
 class DownBlock2d(nn.Module):
 
     def __init__(self, in_features, out_features, norm=False, kernel_size=4, pool=False, sn=False):
@@ -61,7 +98,7 @@ class Discriminator(nn.Module):
        
         output = x
         
-        gaussian_heatmaps= kp2gaussian(kp, x.shape[2:], self.kp_variance) if self.use_kp else None
+        gaussian_heatmaps= gaussian_heatmaps_from_keypoints(kp, x.shape[2:], self.kp_variance) if self.use_kp else None
         if gaussian_heatmaps is not None:
             output = torch.cat([output, gaussian_heatmaps], dim=1)
            
@@ -105,3 +142,4 @@ class MultiScaleDiscriminator(nn.Module):
             dictionary_of_output['prediction_map_' + modified_scale] = prediction_map
             
         return dictionary_of_output
+
