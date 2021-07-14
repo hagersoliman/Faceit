@@ -8,18 +8,18 @@ def localized_heatmap(kp, kp_variance, w, h): #kp2gaussian
     """
     Transform a keypoint into gaussian like representation
     """
-    print("kp2gaussian")
+    #print("kp2gaussian")
     kp_value = kp['value']
     mesh = create_mesh(w, h, kp_value.type()) #torch.Size([64, 64, 2])
     mesh = mesh.view((1,1)+mesh.shape) 
-    #print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
-    print(kp_value.shape[1])
+    ##print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
+    #print(kp_value.shape[1])
     Trd = mesh.repeat((1,kp_value.shape[1], 1,1,1))
-    #print("6",Trd.shape) #torch.Size([1, 10, 64, 64, 2])
+    ##print("6",Trd.shape) #torch.Size([1, 10, 64, 64, 2])
     z = kp_value.unsqueeze(2).unsqueeze(2)
-    #print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
+    ##print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
     out = torch.exp(-0.5 * ((Trd - z) ** 2).sum(-1) / kp_variance)
-    #print("10",out.shape) #torch.Size([1, 10, 64, 64])
+    ##print("10",out.shape) #torch.Size([1, 10, 64, 64])
     return out
 def create_mesh(w, h, type):
     """
@@ -153,30 +153,30 @@ def kp2gaussiano(kp, spatial_size, kp_variance):
     """
     Transform a keypoint into gaussian like representation
     """
-    print("kp2gaussian")
+    #print("kp2gaussian")
     mean = kp['value']
     
     coordinate_grid = make_coordinate_grid(spatial_size, mean.type())
-    print("1",coordinate_grid.shape) #torch.Size([64, 64, 2])
+    #print("1",coordinate_grid.shape) #torch.Size([64, 64, 2])
     number_of_leading_dimensions = len(mean.shape) - 1 # 3 - 1
-    print("2",number_of_leading_dimensions) #2
+    #print("2",number_of_leading_dimensions) #2
     shape = (1,) * number_of_leading_dimensions + coordinate_grid.shape
-    print("3", shape) #(1, 1, 64, 64, 2)
+    #print("3", shape) #(1, 1, 64, 64, 2)
     coordinate_grid = coordinate_grid.view(*shape) 
-    print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
+    #print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
     repeats = mean.shape[:number_of_leading_dimensions] + (1, 1, 1)
-    print("5",repeats) #torch.Size([1, 10, 1, 1, 1])
+    #print("5",repeats) #torch.Size([1, 10, 1, 1, 1])
     coordinate_grid = coordinate_grid.repeat(*repeats)
-    print("6",coordinate_grid.shape) #torch.Size([1, 10, 64, 64, 2])
+    #print("6",coordinate_grid.shape) #torch.Size([1, 10, 64, 64, 2])
     # Preprocess kp shape
     shape = mean.shape[:number_of_leading_dimensions] + (1, 1, 2)
-    print("7",shape) #torch.Size([1, 10, 1, 1, 2])
+    #print("7",shape) #torch.Size([1, 10, 1, 1, 2])
     mean = mean.view(*shape)
-    print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
+    #print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
     mean_sub = (coordinate_grid - mean)
-    print("9",mean_sub.shape ) #torch.Size([1, 10, 64, 64, 2])
+    #print("9",mean_sub.shape ) #torch.Size([1, 10, 64, 64, 2])
     out = torch.exp(-0.5 * (mean_sub ** 2).sum(-1) / kp_variance)
-    print("10",out.shape) #torch.Size([1, 10, 64, 64])
+    #print("10",out.shape) #torch.Size([1, 10, 64, 64])
 
     return out
 
@@ -184,17 +184,17 @@ def kp2gaussian(kp, spatial_size, kp_variance):
     """
     Transform a keypoint into gaussian like representation
     """
-    print("kp2gaussian")
+    #print("kp2gaussian")
     mean = kp['value']
     coordinate_grid = make_coordinate_grid(spatial_size, mean.type()) #torch.Size([64, 64, 2])
     coordinate_grid = coordinate_grid.view((1,1)+coordinate_grid.shape) 
-    #print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
+    ##print("4",coordinate_grid.shape) #torch.Size([1, 1, 64, 64, 2])
     Trd = coordinate_grid.repeat((1,10,1,1,1))
-    #print("6",Trd.shape) #torch.Size([1, 10, 64, 64, 2])
+    ##print("6",Trd.shape) #torch.Size([1, 10, 64, 64, 2])
     z = mean.unsqueeze(2).unsqueeze(2)
-    #print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
+    ##print("8",mean.shape) #torch.Size([1, 10, 1, 1, 2])
     out = torch.exp(-0.5 * ((Trd - z) ** 2).sum(-1) / kp_variance)
-    #print("10",out.shape) #torch.Size([1, 10, 64, 64])
+    ##print("10",out.shape) #torch.Size([1, 10, 64, 64])
     
 
     return out
@@ -431,8 +431,7 @@ class Encoder(nn.Module):
         outs = [x]
         for down_block in self.down_blocks:
             outs.append(down_block(outs[-1]))
-        for i, b  in enumerate( outs):
-            print(i," : ", b.shape)
+        
         return outs
 
 
@@ -525,3 +524,5 @@ class AntiAliasInterpolation2d(nn.Module):
         out = out[:, :, ::self.int_inv_scale, ::self.int_inv_scale]
 
         return out
+
+
