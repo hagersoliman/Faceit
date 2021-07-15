@@ -1,20 +1,15 @@
-import matplotlib
-matplotlib.use('Agg')
+
 import os, sys
 import yaml
-from argparse import ArgumentParser
 from tqdm import tqdm
-
-import imageio
-import numpy as np
 from skimage.transform import resize
 from skimage import img_as_ubyte
+import imageio
+import numpy as np
 import torch
 from sync_batchnorm import DataParallelWithCallback
-
 from modules.generator import OcclusionAwareGenerator
 from modules.keypoint_detector import KPDetector
-from animate import normalize_kp
 from scipy.spatial import ConvexHull
 
 
