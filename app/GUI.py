@@ -4,6 +4,7 @@ from PySide2 import *
 
 user_type = 0
 username = "sara"
+PORT = 1234
 
 class Who_Are_You(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -46,22 +47,39 @@ class enter_user_name(QtWidgets.QWidget):
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         # Create widgets
-        self.label = QLabel("username:")
-        self.textLine = QLineEdit()
+        self.username_lbl = QLabel("username:")
+        self.username_txt = QLineEdit()
+        self.meeting_id_lbl = QLabel("meeting ID:")
+        self.meeting_id_txt = QLineEdit()
+        self.add_me = QPushButton("Add me")
+        self.confirm_info = QLabel("")
         self.button = QPushButton("done")
+        self.button.hide()
         # Create layout and add widgets
         layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.textLine)
+        layout.addWidget(self.username_lbl)
+        layout.addWidget(self.username_txt)
+        layout.addWidget(self.meeting_id_lbl)
+        layout.addWidget(self.meeting_id_txt)
+        layout.addWidget(self.add_me)
+        layout.addWidget(self.confirm_info)
         layout.addWidget(self.button)
         # Set dialog layout
         self.setLayout(layout)
 
-        global username
-        user_type = self.textLine.text()
-        print("username")
+        self.add_me.clicked.connect(self.add_user)
 
         self.connect(self.button, QtCore.SIGNAL("clicked()"), qApp, QtCore.SLOT("quit()"))
+
+    def add_user(self):
+        global username
+        username = self.username_txt.text()
+        global PORT
+        PORT = int(self.meeting_id_txt.text())
+        confirm = f"username: {username}, meeting ID: {PORT}"
+        self.confirm_info.setText(confirm)
+        self.button.show()
+
 
 
 class create_client(QtWidgets.QWidget):
