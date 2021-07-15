@@ -10,23 +10,36 @@ class Who_Are_You(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
 
         # Create widgets
-        self.label = QLabel("who are you?")
-        self.textLine = QLineEdit()
+        self.label = QLabel("what do you want to do?")
+        self.server = QRadioButton("create new meeting")
+        self.client = QRadioButton("join meeting")
         self.button = QPushButton("done")
 
         # Create layout and add widgets
         layout = QVBoxLayout()
         layout.addWidget(self.label)
-        layout.addWidget(self.textLine)
+        layout.addWidget(self.server)
+        layout.addWidget(self.client)
         layout.addWidget(self.button)
 
         # Set dialog layout
         self.setLayout(layout)
         global user_type
-        # user_type = self.textLine.text()
         print("who are you")
 
+        self.server.clicked.connect(self.set_type_server)
+        self.client.clicked.connect(self.set_type_client)
         self.connect(self.button, QtCore.SIGNAL("clicked()"), qApp, QtCore.SLOT("quit()"))
+
+    def set_type_server(self):
+        global user_type
+        user_type = 1
+        global PORT
+        PORT = 1234
+
+    def set_type_client(self):
+        global user_type
+        user_type = 0
         
 
 class enter_user_name(QtWidgets.QWidget):
@@ -92,12 +105,8 @@ widget = Who_Are_You()
 widget.show()
 # sys.exit(app.exec_())
 app.exec_()
-print("dooone")
-x = 3 + 2
-print(user_type)
 
 if user_type == 1:
-    print("good")
     if not QtWidgets.QApplication.instance():
         app = QtWidgets.QApplication(sys.argv)
     else:
