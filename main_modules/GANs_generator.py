@@ -170,3 +170,4 @@ class OcclusionAwareGenerator(nn.Module):
 
         return F.grid_sample(inpt, reversed_interpolated_deformation if deformation.shape[1] != inpt.shape[2] or deformation.shape[2] != inpt.shape[3] else deformation)
 
+

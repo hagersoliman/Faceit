@@ -182,9 +182,12 @@ class DatasetFramesAndAugmentation(Dataset):
             assert os.path.exists(os.path.join(root_dir, 'test'))
             print("Use predefined train-test split.")
             if id_sampling:
-                train_videos = {os.path.basename(video).split('#')[0] for video in os.listdir(os.path.join(root_dir, 'train'))}
+                train_videos=[]
+                train_videos_initial=os.listdir(os.path.join(root_dir, 'train'))
+                for video in train_videos_initial:
+                    if video.endswith("mp4"): 
+                        train_videos.append(os.path.basename(video).split('#')[0])
                 
-                train_videos = list(train_videos)
             else:
                 train_videos = os.listdir(os.path.join(root_dir, 'train'))
             
@@ -192,7 +195,7 @@ class DatasetFramesAndAugmentation(Dataset):
             self.root_dir = os.path.join(self.root_dir, 'train' if is_train else 'test')
         
         self.videos = train_videos if is_train else test_videos
-
+       
         self.transform=AllAugmentationTransform(**augmentation_params) if is_train else None
        
 
@@ -205,8 +208,10 @@ class DatasetFramesAndAugmentation(Dataset):
             name = self.videos[idx]
             list_of_pathes=[]
             for i in glob.glob(os.path.join(self.root_dir, name + '*')):
+                
                 if i.endswith("mp4"):
                     list_of_pathes.append(i)
+           
             path = np.random.choice(list_of_pathes)
             
         else:

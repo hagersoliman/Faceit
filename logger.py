@@ -82,7 +82,8 @@ class Logger:
         if self.names is None:
             self.names = list(losses.keys())
         self.loss_list.append(list(losses.values()))
-
+        self.log_scores(self.names)
+        
     def log_epoch(self, epoch, models, inp, out):
         
         self.epoch = epoch
@@ -93,4 +94,5 @@ class Logger:
             self.save_cpk()
         self.log_scores(self.names)
         
+
 

@@ -28,11 +28,13 @@ class DenseMotionNetwork(nn.Module):
         Eq 6. in the paper 
         """
         #print("eq6")
-        bG = torch.zeros(1, 1, w, h).type(kp_driving['value'].type())
+        
         driving_heatmap = localized_heatmap(kp_driving, self.kp_variance, w, h) #torch.Size([1, 10, 64, 64])
         source_heatmap = localized_heatmap(kp_source, self.kp_variance, w, h) #torch.Size([1, 10, 64, 64])
         heatmap = driving_heatmap - source_heatmap
-        heatmap = torch.cat([bG, heatmap], dim=1).unsqueeze(2)
+        bG = torch.zeros(heatmap.shape[0], 1, heatmap.shape[2], heatmap.shape[3]).type(heatmap.type())
+        heatmap = torch.cat([bG, heatmap], dim=1)
+        heatmap = heatmap.unsqueeze(2)
         return heatmap
 
     def z_tdr(self, mesh, kp_driving, h, w, bs):
@@ -157,6 +159,7 @@ class DenseMotionNetwork(nn.Module):
         out_dict['occlusion_map'] = occlusion_map
 
         return out_dict
+
 
 
 

@@ -103,3 +103,4 @@ class KPDetector(nn.Module):
         kp['value'] = keypoints
         kp['jacobian'] = jacobian
         return kp
+
