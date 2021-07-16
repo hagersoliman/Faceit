@@ -2,14 +2,15 @@ import socket
 import select
 import errno
 import sys
-
+import random
+import time
 
 user_type = input("client or server? (c/s) ")
 
 
 HEADER_SIZE = 10
 IP = "127.0.0.1"
-PORT = 1234
+PORT = 1239
 
 # if server
 if user_type == 's': 
@@ -96,21 +97,28 @@ if user_type == 'c':
     client_socket.send(username_header + username)
 
     while True:
-        message = input(f"{my_username} > ")
+        time.sleep(2)
+        message = str(random.randrange(1234, 9876, 1))
+        # message = input(f"{my_username} > ")
+        # print("one")
 
         if message:
+            # print("two")
             message = message.encode("utf-8")
             message_header = f"{len(message):<{HEADER_SIZE}}".encode("utf-8")
             client_socket.send(message_header + message)
 
         try:
             while True:
+                # print("before")
                 # receive
                 username_header = client_socket.recv(HEADER_SIZE)
+                # print("after")
                 if not len(username_header):
                     print("connection closed by server")
                     sys.exit()
 
+                # print("three")
                 username_length = int(username_header.decode("utf-8").strip())
                 username = client_socket.recv(username_length).decode("utf-8")
 
