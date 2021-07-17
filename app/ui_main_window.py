@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Form(object):
+class Ui_Form_Server(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(525, 386)
@@ -19,6 +19,10 @@ class Ui_Form(object):
         self.image_label = QtWidgets.QLabel(Form)
         self.image_label.setObjectName("image_label")
         self.verticalLayout.addWidget(self.image_label)
+
+        self.meeting_ID = QtWidgets.QLabel(Form)
+        self.meeting_ID.setObjectName("meeting_ID")
+        self.verticalLayout.addWidget(self.meeting_ID)
         self.control_bt = QtWidgets.QPushButton(Form)
         self.control_bt.setObjectName("control_bt")
         self.verticalLayout.addWidget(self.control_bt)
