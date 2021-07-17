@@ -44,7 +44,9 @@ if user_type == 's':
             return False
 
     while True:
+        print("before")
         read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+        print("after")
 
         for notified_socket in read_sockets:
             if notified_socket == server_socket: # someone just connect, new user

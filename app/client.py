@@ -10,10 +10,10 @@ PORT = 1234
 
 my_username = input("Username: ")
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((OP, PORT))
+client_socket.connect((IP, PORT))
 client_socket.setblocking(False) # receive functionality will not be blocking
 
-username = my_username.encode("uft-8") # convert username to bytes
+username = my_username.encode("utf-8") # convert username to bytes
 username_header = f"{len(username):<{HEADER_SIZE}}".encode("utf-8")
 client_socket.send(username_header + username)
 
