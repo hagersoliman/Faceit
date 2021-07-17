@@ -143,3 +143,4 @@ class MultiScaleDiscriminator(nn.Module):
             
         return dictionary_of_output
 
+

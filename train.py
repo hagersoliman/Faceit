@@ -58,7 +58,7 @@ def train(config, generator, discriminator, kp_detector, checkpoint, log_dir, da
     if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
         dataset = RepeatDataset(dataset, train_params['num_repeats'])
         
-    dataloader = DataLoader(dataset, batch_size=train_params['batch_size'], shuffle=True, num_workers=6, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=train_params['batch_size'], shuffle=True, drop_last=True)
 
     generator_full = GeneratorFullModel(kp_detector, generator, discriminator, train_params)
     discriminator_full = DiscriminatorFullModel(kp_detector, generator, discriminator, train_params)
@@ -69,8 +69,9 @@ def train(config, generator, discriminator, kp_detector, checkpoint, log_dir, da
 
     with Logger(log_dir=log_dir, checkpoint_freq=train_params['checkpoint_freq']) as logger:
         for epoch in trange(start_epoch, train_params['num_epochs']):
+            print("______________________New EPOCH________________________")
             for x in dataloader:
-                
+                print("_____________________NEW BATCHHHHHH_________________________")
                 generator_losses, generated = generator_full(x)
 
                 loss=0
@@ -101,7 +102,8 @@ def train(config, generator, discriminator, kp_detector, checkpoint, log_dir, da
                 losses = {key: value.mean().detach().data.cpu().numpy() for key, value in generator_losses.items()}
 
                 logger.log_iter(losses=losses)
-
+           
+        
             generator_scheduler.step()
             discriminator_scheduler.step()
             kp_detector_scheduler.step()
@@ -144,3 +146,4 @@ if __name__ == "__main__":
     
     train(configuration, generator, discriminator, keypoint_detector, arguments.checkpoint, directory_of_logs, dataset, arguments.device_ids)
     
+

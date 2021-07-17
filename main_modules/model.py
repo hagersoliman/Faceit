@@ -103,8 +103,8 @@ class Vgg19(torch.nn.Module):
         self.slices.append(self.slice5)
         
         for i in range(len(layers)):
-          for j in range(*layers[i]):
-            self.slices[i].add_module(str(j), features[j])
+            for j in range(*layers[i]):
+                self.slices[i].add_module(str(j), features[j])
 
         # for i in range(len(layers)):
         # 	self.slices.append(nn.Sequential(*features[layers[i][0]: layers[i][1]]))
@@ -233,6 +233,7 @@ class GeneratorFullModel(torch.nn.Module):
                 self.vgg = self.vgg.cuda()
 
     def forward(self, x):
+       
         kp_source = self.kp_extractor(x['source'])
         kp_driving = self.kp_extractor(x['driving'])
 
@@ -243,7 +244,7 @@ class GeneratorFullModel(torch.nn.Module):
 
         origin_pyramid = self.pyramid(x['driving'])
         generated_pyramid = self.pyramid(generated['prediction'])
-
+        
         if sum(self.loss_weights['perceptual']) != 0:
             total_value = 0
             for scale in self.scales:
@@ -281,7 +282,7 @@ class GeneratorFullModel(torch.nn.Module):
                         value = torch.abs(a - b).mean()
                         total_value += weight * value
                     loss_values['feature_matching'] = total_value
-
+        
         equivariance_value = self.loss_weights['equivariance_value']
         if (equivariance_value + self.loss_weights['equivariance_jacobian']) != 0:
             transform = Transform(x['driving'].shape[0], **self.train_params['transform_params'])
@@ -320,7 +321,7 @@ class GeneratorFullModel(torch.nn.Module):
 
                 value = torch.abs(eye - value).mean()
                 loss_values['equivariance_jacobian'] = self.loss_weights['equivariance_jacobian'] * value
-
+       
         return loss_values, generated
 
 
@@ -344,6 +345,7 @@ class DiscriminatorFullModel(torch.nn.Module):
 
 
     def forward(self, x, generated):
+       
         origin_pyramid = self.pyramid(x['driving'])
         generated_pyramide = self.pyramid(generated['prediction'].detach())
         kp_driving = generated['kp_driving']
@@ -365,3 +367,4 @@ class DiscriminatorFullModel(torch.nn.Module):
         loss_values['disc_gan'] = total_loss
 
         return loss_values
+
